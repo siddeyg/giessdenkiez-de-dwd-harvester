@@ -65,9 +65,8 @@ def start_tileset_creation(
     url = "https://api.mapbox.com/uploads/v1/{}?access_token={}".format(
         mapbox_username, mapbox_token
     )
-    payload = '{{"url":"http://{}.s3.amazonaws.com/{}","tileset":"{}.{}","name":"{}"}}'.format(
-        mapbox_storage_credentials["bucket"],
-        mapbox_storage_credentials["key"],
+    payload = '{{"url":"{}","tileset":"{}.{}","name":"{}"}}'.format(
+        mapbox_storage_credentials["url"],
         mapbox_username,
         mapbox_tileset,
         mapbox_layer_name,
@@ -77,12 +76,16 @@ def start_tileset_creation(
         "Accept-Charset": "UTF-8",
         "Cache-Control": "no-cache",
     }
+    logging.info(f"Tileset creation payload: {payload}")
     response = requests.post(url, data=payload, headers=headers)
+    logging.info(f"Tileset creation HTTP status: {response.status_code}")
+    logging.info(f"Tileset creation response: {response.content}")
     if response.status_code != 201:
         logging.error("Could not start Mapbox tileset creation")
         logging.error(response.content)
 
     upload_id = json.loads(response.content)["id"]
+    logging.info(f"Tileset upload ID: {upload_id}")
 
     return upload_id
 
@@ -115,6 +118,9 @@ def wait_for_tileset_creation_complete(
         }
         response = requests.get(url, headers=headers)
         responseJson = json.loads(response.content)
+        if "complete" not in responseJson:
+            logging.error(f"Unexpected upload status response: {responseJson}")
+            return f"Unexpected response: {responseJson}"
         complete = responseJson["complete"]
         error = responseJson["error"]
         progress = responseJson["progress"]

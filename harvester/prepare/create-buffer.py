@@ -2,8 +2,11 @@
 import geopandas
 import os
 from shapely.ops import unary_union
+from dotenv import load_dotenv
 
-input_path = os.getenv("SURROUNDING_SHAPE_FILE")
+load_dotenv()
+
+input_path = os.environ.get("SURROUNDING_SHAPE_FILE")
 if input_path is None:
     raise ValueError("Environment variable SURROUNDING_SHAPE_FILE is not set.")
 
@@ -23,8 +26,13 @@ output_filename = "buffer.shp"
 output_path = os.path.join(input_dir, output_filename)
 
 berlin = berlin.to_crs("epsg:3857")
+
+# Use convex hull of all geometries — works correctly for both city boundary
+# polygons (Berlin) and point datasets (Bonn trees). Much faster than
+# buffering a unary_union of thousands of individual points.
+city_hull = unary_union(berlin["geometry"]).convex_hull
 berlin_boundary = geopandas.GeoDataFrame(
-    geopandas.GeoSeries(unary_union(berlin["geometry"]))
+    geopandas.GeoSeries([city_hull])
 )
 berlin_boundary = berlin_boundary.rename(columns={0: "geometry"}).set_geometry(
     "geometry"
