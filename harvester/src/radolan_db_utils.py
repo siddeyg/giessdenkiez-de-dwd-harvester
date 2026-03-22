@@ -59,6 +59,15 @@ def seed_radolan_geometry_if_empty(polygonized_shape_file, db_conn):
     if not rows:
         logging.warning("Shapefile has no geometries — radolan_geometry not seeded.")
         return
+    if len(rows) == 1:
+        # On a dry day gdal_polygonize merges all zero-value pixels into one polygon.
+        # Seeding from a single polygon would create wrong centroids. Skip and wait
+        # for a rainy day when individual 1km cells are polygonized separately.
+        logging.info(
+            "Shapefile has only 1 polygon (dry day — all cells same value). "
+            "Skipping radolan_geometry seed; will retry on next rainy day."
+        )
+        return
 
     with db_conn.cursor() as cur:
         psycopg2.extras.execute_batch(
