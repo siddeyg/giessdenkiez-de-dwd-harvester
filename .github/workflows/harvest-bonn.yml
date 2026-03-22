@@ -1,0 +1,42 @@
+name: harvest bonn (daily)
+
+on:
+  schedule:
+    - cron: "0 3 * * *"  # 3am UTC daily — fresh DWD data available by ~2am UTC
+  workflow_dispatch:      # allow manual trigger
+
+jobs:
+  harvest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build harvester image
+        run: |
+          cd harvester && docker build \
+            --tag gdk-dwd-harvester:bonn .
+
+      - name: Run harvester
+        run: |
+          docker run \
+            --env PG_SERVER='db.amkcbaxqgdpmmkmafnue.supabase.co' \
+            --env PG_PORT='5432' \
+            --env PG_USER='postgres' \
+            --env PG_PASS='${{ secrets.DB_PASSWORD }}' \
+            --env PG_DB='postgres' \
+            --env SUPABASE_URL='https://amkcbaxqgdpmmkmafnue.supabase.co' \
+            --env SUPABASE_SERVICE_ROLE_KEY='${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}' \
+            --env SUPABASE_BUCKET_NAME='data_assets' \
+            --env MAPBOXUSERNAME='giessdenkiez' \
+            --env MAPBOXTOKEN='${{ secrets.MAPBOX_SECRET_TOKEN }}' \
+            --env MAPBOXTILESET='bonn_trees' \
+            --env MAPBOXLAYERNAME='trees' \
+            --env WEATHER_HARVEST_LAT='50.7374' \
+            --env WEATHER_HARVEST_LNG='7.0982' \
+            --env SURROUNDING_SHAPE_FILE='/app/assets/buffer.shp' \
+            --env LIMIT_DAYS='30' \
+            --env SKIP_MAPBOX='False' \
+            --env OUTPUT='True' \
+            --env LOGGING='INFO' \
+            gdk-dwd-harvester:bonn
