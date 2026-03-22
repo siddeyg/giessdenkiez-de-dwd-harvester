@@ -1,4 +1,5 @@
 import psycopg2
+import psycopg2.extras
 from datetime import datetime
 from datetime import timedelta
 import logging
@@ -29,6 +30,52 @@ def get_start_end_harvest_dates(db_conn):
         return [start_date, end_date]
 
 
+def seed_radolan_geometry_if_empty(polygonized_shape_file, db_conn):
+    """Seeds radolan_geometry from a polygonized RADOLAN shapefile on first run.
+
+    radolan_geometry holds the fixed RADOLAN grid cells for the city area.
+    On a fresh DB it is empty; this function seeds it once from any valid
+    projected shapefile, regardless of rainfall values (dry days are fine).
+    On subsequent runs the EXISTS check makes this a no-op.
+
+    Args:
+        polygonized_shape_file: path to the polygonized shapefile (EPSG:3857)
+        db_conn: database connection
+    """
+    with db_conn.cursor() as cur:
+        cur.execute("SELECT 1 FROM radolan_geometry LIMIT 1")
+        if cur.fetchone() is not None:
+            return  # already seeded
+
+    import geopandas
+    from shapely.wkt import dumps
+
+    logging.info(f"Seeding radolan_geometry from {polygonized_shape_file}...")
+    df = geopandas.read_file(polygonized_shape_file)
+    df = df.to_crs("epsg:3857")
+    df = df[df["geometry"].notnull()]
+
+    rows = [[dumps(row.geometry, rounding_precision=5)] for _, row in df.iterrows()]
+    if not rows:
+        logging.warning("Shapefile has no geometries — radolan_geometry not seeded.")
+        return
+
+    with db_conn.cursor() as cur:
+        psycopg2.extras.execute_batch(
+            cur,
+            """
+            INSERT INTO radolan_geometry (geometry, centroid)
+            VALUES (
+                ST_Transform(ST_GeomFromText(%s, 3857), 4326),
+                ST_Centroid(ST_Transform(ST_GeomFromText(%s, 3857), 4326))
+            )
+            """,
+            [[r[0], r[0]] for r in rows],
+        )
+        db_conn.commit()
+    logging.info(f"Seeded {len(rows)} rows into radolan_geometry.")
+
+
 def upload_radolan_data_in_db(extracted_radolan_values, db_conn):
     """Uploads extracted radolon data into database
 
@@ -46,16 +93,6 @@ def upload_radolan_data_in_db(extracted_radolan_values, db_conn):
             VALUES (ST_Multi(ST_Transform(ST_GeomFromText(%s, 3857), 4326)), %s, %s);
             """,
             extracted_radolan_values,
-        )
-        # Seed radolan_geometry on first run (fresh DB has no grid cells).
-        # The RADOLAN grid is fixed per city — centroid uniqueness ensures no duplicates.
-        cur.execute(
-            """
-            INSERT INTO radolan_geometry (geometry, centroid)
-            SELECT ST_GeometryN(geometry, 1), ST_Centroid(geometry)
-            FROM radolan_temp
-            WHERE NOT EXISTS (SELECT 1 FROM radolan_geometry LIMIT 1);
-            """
         )
         cur.execute(
             """

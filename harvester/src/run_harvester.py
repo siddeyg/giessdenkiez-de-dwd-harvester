@@ -4,7 +4,6 @@ import psycopg2
 from dotenv import load_dotenv
 import logging
 import os
-import traceback
 from radolan_db_utils import update_trees_in_database
 from dwd_harvest import harvest_dwd
 from radolan_db_utils import (
@@ -38,27 +37,6 @@ for env_var in [
     if env_var not in os.environ:
         logging.error("❌Environmental Variable {} does not exist".format(env_var))
         sys.exit(1)
-
-print("🔍 PG_DB =", os.getenv("PG_DB"))
-try:
-    print("🔌 Testverbindung wird aufgebaut...")
-    test_conn = psycopg2.connect(
-        dbname="postgres",
-        user="postgres",
-        password="postgres",
-        host="localhost",
-        port=54322,
-    )
-    print("✅ Verbindung erfolgreich!")
-    test_conn.close()
-except Exception as e:
-    print("❌ Testverbindung gescheitert:")
-    import traceback
-    traceback.print_exc()
-
-
-
-
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_BUCKET_NAME = os.getenv("SUPABASE_BUCKET_NAME")

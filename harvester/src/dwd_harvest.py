@@ -7,6 +7,7 @@ from radolan_db_utils import (
     upload_radolan_data_in_db,
     cleanup_radolan_entries,
     update_harvest_dates,
+    seed_radolan_geometry_if_empty,
 )
 from build_radolan_grid import build_radolan_grid
 
@@ -50,6 +51,9 @@ def harvest_dwd(
                 polygonized_radolan = polygonize_data(
                     projected_radolan_geotiff, hourly_temp_dir
                 )
+
+                # Seed radolan_geometry on first run (no-op if already populated)
+                seed_radolan_geometry_if_empty(polygonized_radolan, database_connection)
 
                 # Extract Radolan data
                 extracted_radolan_values = extract_radolan_data_from_shapefile(
