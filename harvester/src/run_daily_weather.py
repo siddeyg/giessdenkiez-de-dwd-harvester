@@ -42,8 +42,7 @@ WEATHER_HARVEST_LNG = os.getenv("WEATHER_HARVEST_LNG")
 # Establish database connection
 try:
     database_connection = psycopg2.connect(
-        dbname=PG_DB, user=PG_USER, password=PG_PASS, host=PG_SERVER, port=PG_PORT,
-        sslmode="require"
+        dbname=PG_DB, user=PG_USER, password=PG_PASS, host=PG_SERVER, port=PG_PORT
     )
     logging.info("🗄 Database connection established")
 except Exception as e:

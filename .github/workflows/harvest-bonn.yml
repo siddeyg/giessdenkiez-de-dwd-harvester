@@ -12,6 +12,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up SSH tunnel via VPS
+        # GitHub Actions runners have no IPv6. Supabase free tier DB is IPv6-only.
+        # Tunnel through powersrv (152.53.117.22) which has IPv6 connectivity.
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H 152.53.117.22 >> ~/.ssh/known_hosts
+          ssh -fN \
+            -L 5433:db.amkcbaxqgdpmmkmafnue.supabase.co:5432 \
+            -i ~/.ssh/id_ed25519 \
+            info@152.53.117.22
+          # Wait for tunnel to be ready
+          for i in $(seq 1 10); do
+            timeout 1 bash -c "echo > /dev/tcp/127.0.0.1/5433" 2>/dev/null && echo "Tunnel ready" && break
+            sleep 1
+          done
+
       - name: Build harvester image
         run: |
           cd harvester && docker build \
@@ -22,9 +40,9 @@ jobs:
         run: |
           docker run \
             --network host \
-            --env PG_SERVER='aws-0-eu-central-1.pooler.supabase.com' \
-            --env PG_PORT='5432' \
-            --env PG_USER='postgres.amkcbaxqgdpmmkmafnue' \
+            --env PG_SERVER='127.0.0.1' \
+            --env PG_PORT='5433' \
+            --env PG_USER='postgres' \
             --env PG_PASS='${{ secrets.DB_PASSWORD }}' \
             --env PG_DB='postgres' \
             --env SUPABASE_URL='https://amkcbaxqgdpmmkmafnue.supabase.co' \
