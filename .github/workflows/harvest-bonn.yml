@@ -15,7 +15,7 @@ jobs:
       - name: Build harvester image
         run: |
           cd harvester && docker build \
-            --build-arg SURROUNDING_SHAPE_FILE='/app/assets/buffer.shp' \
+            --build-arg SURROUNDING_SHAPE_FILE='/app/assets/Baumstandorte_Bonn.shp' \
             --tag gdk-dwd-harvester:bonn .
 
       - name: Run harvester
