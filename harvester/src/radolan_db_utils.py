@@ -47,6 +47,16 @@ def upload_radolan_data_in_db(extracted_radolan_values, db_conn):
             """,
             extracted_radolan_values,
         )
+        # Seed radolan_geometry on first run (fresh DB has no grid cells).
+        # The RADOLAN grid is fixed per city — centroid uniqueness ensures no duplicates.
+        cur.execute(
+            """
+            INSERT INTO radolan_geometry (geometry, centroid)
+            SELECT ST_GeometryN(geometry, 1), ST_Centroid(geometry)
+            FROM radolan_temp
+            WHERE NOT EXISTS (SELECT 1 FROM radolan_geometry LIMIT 1);
+            """
+        )
         cur.execute(
             """
             INSERT INTO radolan_data (geom_id, value, measured_at)
