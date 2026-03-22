@@ -78,7 +78,7 @@ SURROUNDING_SHAPE_FILE = os.getenv("SURROUNDING_SHAPE_FILE")
 
 # Establish database connection
 try:
-    database_connection_str = f"host='{PG_SERVER}' port={PG_PORT} user='{PG_USER}' password='{PG_PASS}' dbname='{PG_DB}'"
+    database_connection_str = f"host='{PG_SERVER}' port={PG_PORT} user='{PG_USER}' password='{PG_PASS}' dbname='{PG_DB}' sslmode='require'"
     print("📡 Verbindungs-String:", database_connection_str)
     database_connection = psycopg2.connect(database_connection_str)
     logging.info("🗄 Database connection established")
