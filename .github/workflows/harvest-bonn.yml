@@ -12,6 +12,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check DB connectivity
+        run: |
+          echo "=== DNS lookup ==="
+          nslookup db.amkcbaxqgdpmmkmafnue.supabase.co || true
+          echo "=== TCP port test ==="
+          timeout 5 bash -c "echo > /dev/tcp/db.amkcbaxqgdpmmkmafnue.supabase.co/5432" && echo "TCP OK" || echo "TCP FAILED"
+
       - name: Build harvester image
         run: |
           cd harvester && docker build \
