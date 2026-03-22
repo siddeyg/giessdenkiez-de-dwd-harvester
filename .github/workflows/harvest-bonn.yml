@@ -12,13 +12,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Check DB connectivity
-        run: |
-          echo "=== DNS lookup ==="
-          nslookup db.amkcbaxqgdpmmkmafnue.supabase.co || true
-          echo "=== TCP port test ==="
-          timeout 5 bash -c "echo > /dev/tcp/db.amkcbaxqgdpmmkmafnue.supabase.co/5432" && echo "TCP OK" || echo "TCP FAILED"
-
       - name: Build harvester image
         run: |
           cd harvester && docker build \
@@ -29,9 +22,9 @@ jobs:
         run: |
           docker run \
             --network host \
-            --env PG_SERVER='db.amkcbaxqgdpmmkmafnue.supabase.co' \
+            --env PG_SERVER='aws-0-eu-central-1.pooler.supabase.com' \
             --env PG_PORT='5432' \
-            --env PG_USER='postgres' \
+            --env PG_USER='postgres.amkcbaxqgdpmmkmafnue' \
             --env PG_PASS='${{ secrets.DB_PASSWORD }}' \
             --env PG_DB='postgres' \
             --env SUPABASE_URL='https://amkcbaxqgdpmmkmafnue.supabase.co' \
