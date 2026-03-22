@@ -4,6 +4,7 @@ import psycopg2
 from dotenv import load_dotenv
 import logging
 import os
+import traceback
 from radolan_db_utils import update_trees_in_database
 from dwd_harvest import harvest_dwd
 from radolan_db_utils import (
@@ -38,6 +39,27 @@ for env_var in [
         logging.error("❌Environmental Variable {} does not exist".format(env_var))
         sys.exit(1)
 
+print("🔍 PG_DB =", os.getenv("PG_DB"))
+try:
+    print("🔌 Testverbindung wird aufgebaut...")
+    test_conn = psycopg2.connect(
+        dbname="postgres",
+        user="postgres",
+        password="postgres",
+        host="localhost",
+        port=54322,
+    )
+    print("✅ Verbindung erfolgreich!")
+    test_conn.close()
+except Exception as e:
+    print("❌ Testverbindung gescheitert:")
+    import traceback
+    traceback.print_exc()
+
+
+
+
+
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_BUCKET_NAME = os.getenv("SUPABASE_BUCKET_NAME")
 SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
@@ -57,10 +79,11 @@ SURROUNDING_SHAPE_FILE = os.getenv("SURROUNDING_SHAPE_FILE")
 # Establish database connection
 try:
     database_connection_str = f"host='{PG_SERVER}' port={PG_PORT} user='{PG_USER}' password='{PG_PASS}' dbname='{PG_DB}'"
+    print("📡 Verbindungs-String:", database_connection_str)
     database_connection = psycopg2.connect(database_connection_str)
     logging.info("🗄 Database connection established")
-except:
-    logging.error("❌Could not establish database connection")
+except Exception as e:
+    logging.error("❌Could not establish database connection: %s", e)
     database_connection = None
     sys.exit(1)
 

@@ -45,8 +45,8 @@ try:
         dbname=PG_DB, user=PG_USER, password=PG_PASS, host=PG_SERVER, port=PG_PORT
     )
     logging.info("🗄 Database connection established")
-except:
-    logging.error("❌Could not establish database connection")
+except Exception as e:
+    logging.error("❌Could not establish database connection: %s", e)
     database_connection = None
     sys.exit(1)
 
