@@ -72,7 +72,8 @@ def generate_trees_csv(temp_dir, db_conn):
                     ELSE
                         TRUE
                     END AS is_adopted_by_users,
-                    trees.bezirk AS district
+                    trees.bezirk AS district,
+                    trees.gattung_deutsch
                 FROM
                     trees
                     LEFT JOIN trees_watered w ON w.tree_id = trees.id
@@ -90,7 +91,8 @@ def generate_trees_csv(temp_dir, db_conn):
                     trees.lng,
                     trees.radolan_sum,
                     trees.pflanzjahr,
-                    trees.bezirk;
+                    trees.bezirk,
+                    trees.gattung_deutsch;
             """
         )
         trees = cur.fetchall()
@@ -105,8 +107,25 @@ def generate_trees_csv(temp_dir, db_conn):
 
         logging.info(f"Creating trees.csv file for {len(trees)} trees...")
 
+        # Genus → icon name mapping (sorted longest-first so ROSSKASTANIE matches before KASTANIE)
+        GENUS_ICONS = [
+            "ROSSKASTANIE", "HAINBUCHE", "MEHLBEERE", "WEIßDORN",
+            "PLATANE", "ROBINIE", "PAPPEL", "AHORN", "BIRKE", "BUCHE",
+            "EICHE", "ERLE", "ESCHE", "HASEL", "KIEFER", "LINDE",
+            "ULME", "WEIDE", "APFEL",
+        ]
+
+        def get_genus_icon(gattung_deutsch):
+            if not gattung_deutsch:
+                return "UNBEKANNT"
+            upper = gattung_deutsch.upper()
+            for icon in GENUS_ICONS:
+                if icon in upper:
+                    return icon
+            return "UNBEKANNT"
+
         # Build CSV file with all trees in it
-        header = "id,lat,lng,radolan_sum,age,watering_sum,total_water_sum_liters,is_adopted_by_users,district"
+        header = "id,lat,lng,radolan_sum,age,watering_sum,total_water_sum_liters,is_adopted_by_users,district,genus_icon"
         lines = []
         for tree in tqdm(trees):
             id = tree[0]
@@ -132,8 +151,9 @@ def generate_trees_csv(temp_dir, db_conn):
 
             is_adopted_by_users = tree[6]
             district = tree[7]
+            genus_icon = get_genus_icon(tree[8])
 
-            line = f"{id}, {lat}, {lng}, {radolan_sum}, {age}, {watering_sum}, {total_water_sum_liters}, {is_adopted_by_users}, {district}"
+            line = f"{id}, {lat}, {lng}, {radolan_sum}, {age}, {watering_sum}, {total_water_sum_liters}, {is_adopted_by_users}, {district}, {genus_icon}"
             lines.append(line)
         trees_csv = "\n".join([header] + lines)
         trees_csv_full_path = os.path.join(temp_dir, "trees.csv")
