@@ -4,6 +4,7 @@ import subprocess
 from datetime import datetime
 import logging
 from tqdm import tqdm
+from genus_icon import get_genus_icon
 from mapbox_utils import (
     upload_to_mapbox_storage,
     start_tileset_creation,
@@ -106,23 +107,6 @@ def generate_trees_csv(temp_dir, db_conn):
         trees_watered = cur.fetchall()
 
         logging.info(f"Creating trees.csv file for {len(trees)} trees...")
-
-        # Genus → icon name mapping (sorted longest-first so ROSSKASTANIE matches before KASTANIE)
-        GENUS_ICONS = [
-            "ROSSKASTANIE", "HAINBUCHE", "MEHLBEERE", "WEIßDORN",
-            "PLATANE", "ROBINIE", "PAPPEL", "AHORN", "BIRKE", "BUCHE",
-            "EICHE", "ERLE", "ESCHE", "HASEL", "KIEFER", "LINDE",
-            "ULME", "WEIDE", "APFEL",
-        ]
-
-        def get_genus_icon(gattung_deutsch):
-            if not gattung_deutsch:
-                return "UNBEKANNT"
-            upper = gattung_deutsch.upper()
-            for icon in GENUS_ICONS:
-                if icon in upper:
-                    return icon
-            return "UNBEKANNT"
 
         # Build CSV file with all trees in it
         header = "id,lat,lng,radolan_sum,age,watering_sum,total_water_sum_liters,is_adopted_by_users,district,genus_icon"
